@@ -211,6 +211,66 @@ class VintageCoatFinder:
         except Exception as e:
             print(f"Error searching eBay: {e}")
 
+    def search_ebay_uk(self):
+        """Search eBay UK"""
+        print("Searching eBay UK...")
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+        try:
+            for term in self.config['search_terms']:
+                # eBay UK search URL
+                search_url = f"https://www.ebay.co.uk/sch/i.html?_nkw={term.replace(' ', '+')}&_sacat=11450"
+                response = requests.get(search_url, headers=headers, timeout=10)
+
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+
+                    # eBay uses s-item class for listings
+                    listings = soup.find_all('div', class_='s-item__wrapper')
+                    if not listings:
+                        listings = soup.find_all('li', class_='s-item')
+
+                    for listing in listings[:10]:
+                        try:
+                            title_elem = listing.find('div', class_='s-item__title')
+                            if not title_elem:
+                                title_elem = listing.find('h3', class_='s-item__title')
+
+                            link_elem = listing.find('a', class_='s-item__link')
+                            price_elem = listing.find('span', class_='s-item__price')
+
+                            if title_elem and link_elem:
+                                title = title_elem.get_text(strip=True)
+                                # Skip eBay's "Shop on eBay" header item
+                                if title.lower() in ['shop on ebay', 'results']:
+                                    continue
+
+                                url = link_elem['href']
+                                price = price_elem.get_text(strip=True) if price_elem else 'N/A'
+
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': price,
+                                    'source': 'eBay UK'
+                                }
+
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing eBay UK listing: {e}")
+                            continue
+
+                time.sleep(2)
+
+        except Exception as e:
+            print(f"Error searching eBay UK: {e}")
+
     def search_vinted(self):
         """Search Vinted"""
         print("Searching Vinted...")
@@ -567,6 +627,9 @@ class VintageCoatFinder:
 
         if self.config.get('search_ebay', True):
             self.search_ebay()
+
+        if self.config.get('search_ebay_uk', True):
+            self.search_ebay_uk()
 
         if self.config.get('search_vinted', True):
             self.search_vinted()

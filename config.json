@@ -6,6 +6,7 @@
   ],
   "search_kleinanzeigen": true,
   "search_ebay": true,
+  "search_ebay_uk": true,
   "search_vinted": true,
   "search_google": true,
   "search_vintage_threads": true,
