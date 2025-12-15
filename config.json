@@ -10,6 +10,9 @@
   "search_ebay_kleinanzeigen": true,
   "search_vinted": true,
   "search_google": true,
+  "search_vintage_threads": true,
+  "search_vilis_vintage": true,
+  "search_etsy": true,
   "location": "Berlin",
   "max_results_per_source": 10
 }

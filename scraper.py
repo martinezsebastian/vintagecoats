@@ -256,7 +256,183 @@ class VintageCoatFinder:
                 
         except Exception as e:
             print(f"Error searching Google: {e}")
-    
+
+    def search_vintage_threads(self):
+        """Search Vintage Threads"""
+        print("Searching Vintage Threads...")
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+        try:
+            for term in self.config['search_terms']:
+                # Vintage Threads search URL structure
+                search_url = f"https://vintage-threads.com/search?q={term.replace(' ', '+')}"
+                response = requests.get(search_url, headers=headers, timeout=10)
+
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+
+                    # Common e-commerce patterns - adjust if needed
+                    listings = soup.find_all('div', class_=['product-item', 'product', 'item'])
+                    if not listings:
+                        listings = soup.find_all('article')
+
+                    for listing in listings[:10]:
+                        try:
+                            # Try common selector patterns
+                            title_elem = listing.find(['h2', 'h3', 'h4'], class_=re.compile('product|title|name'))
+                            if not title_elem:
+                                title_elem = listing.find('a', class_=re.compile('product|title'))
+
+                            link_elem = listing.find('a', href=True)
+                            price_elem = listing.find(['span', 'div', 'p'], class_=re.compile('price'))
+
+                            if title_elem and link_elem:
+                                title = title_elem.get_text(strip=True)
+                                url = link_elem['href']
+                                if not url.startswith('http'):
+                                    url = 'https://vintage-threads.com' + url
+                                price = price_elem.get_text(strip=True) if price_elem else 'N/A'
+
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': price,
+                                    'source': 'Vintage Threads'
+                                }
+
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing Vintage Threads listing: {e}")
+                            continue
+
+                time.sleep(2)
+
+        except Exception as e:
+            print(f"Error searching Vintage Threads: {e}")
+
+    def search_vilis_vintage(self):
+        """Search Vilis Vintage"""
+        print("Searching Vilis Vintage...")
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+        try:
+            for term in self.config['search_terms']:
+                # Vilis Vintage search URL structure
+                search_url = f"https://www.vilisvintage.com/search?q={term.replace(' ', '+')}"
+                response = requests.get(search_url, headers=headers, timeout=10)
+
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+
+                    # Common e-commerce patterns
+                    listings = soup.find_all('div', class_=['product-item', 'product', 'item'])
+                    if not listings:
+                        listings = soup.find_all('article')
+
+                    for listing in listings[:10]:
+                        try:
+                            title_elem = listing.find(['h2', 'h3', 'h4'], class_=re.compile('product|title|name'))
+                            if not title_elem:
+                                title_elem = listing.find('a', class_=re.compile('product|title'))
+
+                            link_elem = listing.find('a', href=True)
+                            price_elem = listing.find(['span', 'div', 'p'], class_=re.compile('price'))
+
+                            if title_elem and link_elem:
+                                title = title_elem.get_text(strip=True)
+                                url = link_elem['href']
+                                if not url.startswith('http'):
+                                    url = 'https://www.vilisvintage.com' + url
+                                price = price_elem.get_text(strip=True) if price_elem else 'N/A'
+
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': price,
+                                    'source': 'Vilis Vintage'
+                                }
+
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing Vilis Vintage listing: {e}")
+                            continue
+
+                time.sleep(2)
+
+        except Exception as e:
+            print(f"Error searching Vilis Vintage: {e}")
+
+    def search_etsy(self):
+        """Search Etsy"""
+        print("Searching Etsy...")
+
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+
+        try:
+            for term in self.config['search_terms']:
+                # Etsy search URL structure
+                search_url = f"https://www.etsy.com/search?q={term.replace(' ', '+')}"
+                response = requests.get(search_url, headers=headers, timeout=10)
+
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+
+                    # Etsy uses data-listing-id attributes
+                    listings = soup.find_all('div', {'data-listing-id': True})
+                    if not listings:
+                        # Fallback to other common patterns
+                        listings = soup.find_all('div', class_=re.compile('listing'))
+
+                    for listing in listings[:10]:
+                        try:
+                            title_elem = listing.find('h3')
+                            if not title_elem:
+                                title_elem = listing.find('h2')
+
+                            link_elem = listing.find('a', href=True)
+                            price_elem = listing.find('span', class_=re.compile('price'))
+
+                            if title_elem and link_elem:
+                                title = title_elem.get_text(strip=True)
+                                url = link_elem['href']
+                                if not url.startswith('http'):
+                                    url = 'https://www.etsy.com' + url
+                                price = price_elem.get_text(strip=True) if price_elem else 'N/A'
+
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': price,
+                                    'source': 'Etsy'
+                                }
+
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing Etsy listing: {e}")
+                            continue
+
+                time.sleep(2)
+
+        except Exception as e:
+            print(f"Error searching Etsy: {e}")
+
     def send_email(self):
         """Send email with found items"""
         if not self.results:
@@ -328,13 +504,22 @@ class VintageCoatFinder:
         # Run searches based on config
         if self.config.get('search_ebay_kleinanzeigen', True):
             self.search_ebay_kleinanzeigen()
-        
+
         if self.config.get('search_vinted', True):
             self.search_vinted()
-        
+
         if self.config.get('search_google', True):
             self.search_google()
-        
+
+        if self.config.get('search_vintage_threads', True):
+            self.search_vintage_threads()
+
+        if self.config.get('search_vilis_vintage', True):
+            self.search_vilis_vintage()
+
+        if self.config.get('search_etsy', True):
+            self.search_etsy()
+
         print(f"\nSearch complete. Found {len(self.results)} new items.")
         
         # Send email with results
