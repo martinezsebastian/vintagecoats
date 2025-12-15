@@ -4,7 +4,8 @@
     "CP company flecked wool reversible",
     "vintage herringbone coat"
   ],
-  "search_ebay_kleinanzeigen": true,
+  "search_kleinanzeigen": true,
+  "search_ebay": true,
   "search_vinted": true,
   "search_google": true,
   "search_vintage_threads": true,
