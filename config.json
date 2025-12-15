@@ -1,0 +1,15 @@
+{
+  "search_terms": [
+    "vintage mantel",
+    "vintage coat",
+    "retro mantel",
+    "70s coat",
+    "80s coat",
+    "vintage wollmantel"
+  ],
+  "search_ebay_kleinanzeigen": true,
+  "search_vinted": true,
+  "search_google": true,
+  "location": "Berlin",
+  "max_results_per_source": 10
+}

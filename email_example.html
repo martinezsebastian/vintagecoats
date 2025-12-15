@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example Email - Vintage Coat Finder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .email-container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        .item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .item h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        .item p {
+            margin: 5px 0;
+            color: #555;
+        }
+        .item a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .item a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 12px;
+        }
+        .badge {
+            display: inline-block;
+            background: #e8f4f8;
+            color: #0066cc;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <h2>🧥 3 New Vintage Coat(s) Found!</h2>
+        <p>Found 3 new item(s) matching your search:</p>
+        <hr>
+        
+        <div class="item">
+            <h3>Vintage 70er Jahre Wollmantel Camel Beige</h3>
+            <p><strong>Price:</strong> €45</p>
+            <p><strong>Source:</strong> <span class="badge">eBay Kleinanzeigen</span></p>
+            <p><a href="https://www.kleinanzeigen.de/s-anzeige/vintage-70er-jahre-wollmantel/12345678">View Item →</a></p>
+        </div>
+        
+        <div class="item">
+            <h3>Retro Mantel Vintage 80s Oversized Coat</h3>
+            <p><strong>Price:</strong> €35</p>
+            <p><strong>Source:</strong> <span class="badge">Vinted</span></p>
+            <p><a href="https://www.vinted.de/items/23456789-retro-mantel-vintage">View Item →</a></p>
+        </div>
+        
+        <div class="item">
+            <h3>Vintage Designer Wool Coat from Berlin Boutique</h3>
+            <p><strong>Price:</strong> €125</p>
+            <p><strong>Source:</strong> <span class="badge">Google Search</span></p>
+            <p><a href="https://example-vintage-shop.com/coats/vintage-wool-coat">View Item →</a></p>
+        </div>
+        
+        <hr>
+        <div class="footer">
+            Report generated on 2025-12-15 10:00:00 UTC<br>
+            <em>Vintage Coat Finder Bot • Running on GitHub Actions</em>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px;">
+        <h3>📧 This is what your daily email will look like!</h3>
+        <p>Each item shows:</p>
+        <ul>
+            <li><strong>Title</strong> - Item description from the listing</li>
+            <li><strong>Price</strong> - Listed price (when available)</li>
+            <li><strong>Source</strong> - Where it was found (color-coded badge)</li>
+            <li><strong>Link</strong> - Direct link to view the item</li>
+        </ul>
+        <p><strong>Pro tip:</strong> You'll only get an email when NEW items are found. If the bot runs and sees the same items, no email is sent!</p>
+    </div>
+</body>
+</html>

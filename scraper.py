@@ -1,0 +1,346 @@
+#!/usr/bin/env python3
+"""
+Vintage Coat Finder Bot
+Searches multiple sources for vintage coats and sends email notifications
+"""
+
+import os
+import json
+import sqlite3
+import smtplib
+import hashlib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+from typing import List, Dict, Optional
+import requests
+from bs4 import BeautifulSoup
+import time
+import re
+
+
+class VintageCoatFinder:
+    def __init__(self, config_path='config.json'):
+        """Initialize the finder with configuration"""
+        with open(config_path, 'r') as f:
+            self.config = json.load(f)
+        
+        self.db_path = 'seen_items.db'
+        self.setup_database()
+        self.results = []
+        
+    def setup_database(self):
+        """Create database to track seen items"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS seen_items (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                url TEXT,
+                price TEXT,
+                source TEXT,
+                found_date TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    
+    def make_request(self, url: str, max_retries: int = 3) -> Optional[requests.Response]:
+        """Make HTTP request with retry logic"""
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, headers=headers, timeout=15)
+                response.raise_for_status()
+                return response
+            except requests.RequestException as e:
+                print(f"Request attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    print(f"Failed to fetch {url} after {max_retries} attempts")
+                    return None
+    
+    def generate_item_id(self, title: str, url: str) -> str:
+        """Generate unique ID for an item"""
+        unique_string = f"{title}_{url}"
+        return hashlib.md5(unique_string.encode()).hexdigest()
+    
+    def is_item_seen(self, item_id: str) -> bool:
+        """Check if item has been seen before"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM seen_items WHERE id = ?', (item_id,))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+    
+    def mark_item_seen(self, item: Dict):
+        """Mark item as seen in database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR IGNORE INTO seen_items (id, title, url, price, source, found_date)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            item['id'],
+            item['title'],
+            item['url'],
+            item.get('price', 'N/A'),
+            item['source'],
+            datetime.now().isoformat()
+        ))
+        conn.commit()
+        conn.close()
+    
+    def search_ebay_kleinanzeigen(self):
+        """Search eBay Kleinanzeigen (Germany)"""
+        print("Searching eBay Kleinanzeigen...")
+        
+        # Build search URL
+        search_terms = '+'.join(self.config['search_terms'])
+        base_url = "https://www.kleinanzeigen.de/s-kleidung-damen/c153"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        try:
+            # Search for each term combination
+            for term in self.config['search_terms']:
+                search_url = f"{base_url}?keywords={term.replace(' ', '+')}"
+                response = requests.get(search_url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    
+                    # Parse listings (adjust selectors based on actual site structure)
+                    listings = soup.find_all('article', class_='aditem')
+                    
+                    for listing in listings[:10]:  # Limit to first 10
+                        try:
+                            title_elem = listing.find('a', class_='ellipsis')
+                            price_elem = listing.find('p', class_='aditem-main--middle--price-shipping--price')
+                            
+                            if title_elem:
+                                title = title_elem.get_text(strip=True)
+                                url = 'https://www.kleinanzeigen.de' + title_elem['href']
+                                price = price_elem.get_text(strip=True) if price_elem else 'N/A'
+                                
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': price,
+                                    'source': 'eBay Kleinanzeigen'
+                                }
+                                
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing listing: {e}")
+                            continue
+                
+                time.sleep(2)  # Be polite, wait between requests
+                
+        except Exception as e:
+            print(f"Error searching eBay Kleinanzeigen: {e}")
+    
+    def search_vinted(self):
+        """Search Vinted"""
+        print("Searching Vinted...")
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        try:
+            for term in self.config['search_terms']:
+                search_url = f"https://www.vinted.de/vetements?search_text={term.replace(' ', '+')}"
+                response = requests.get(search_url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    
+                    # Vinted uses dynamic loading, so basic scraping might not get all items
+                    # This is a simplified version - might need Selenium for full results
+                    listings = soup.find_all('div', class_='feed-grid__item')
+                    
+                    for listing in listings[:10]:
+                        try:
+                            title_elem = listing.find('h3')
+                            link_elem = listing.find('a')
+                            price_elem = listing.find('span', class_='price')
+                            
+                            if title_elem and link_elem:
+                                title = title_elem.get_text(strip=True)
+                                url = 'https://www.vinted.de' + link_elem['href']
+                                price = price_elem.get_text(strip=True) if price_elem else 'N/A'
+                                
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': price,
+                                    'source': 'Vinted'
+                                }
+                                
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing Vinted listing: {e}")
+                            continue
+                
+                time.sleep(2)
+                
+        except Exception as e:
+            print(f"Error searching Vinted: {e}")
+    
+    def search_google(self):
+        """Search via Google (for general web results)"""
+        print("Searching Google...")
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        try:
+            for term in self.config['search_terms']:
+                # Add "vintage coat" and location to search
+                query = f"{term} vintage coat berlin"
+                search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}&num=10"
+                
+                response = requests.get(search_url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.content, 'html.parser')
+                    
+                    # Parse Google search results
+                    search_results = soup.find_all('div', class_='g')
+                    
+                    for result in search_results[:5]:  # Top 5 results
+                        try:
+                            title_elem = result.find('h3')
+                            link_elem = result.find('a')
+                            
+                            if title_elem and link_elem:
+                                title = title_elem.get_text(strip=True)
+                                url = link_elem['href']
+                                
+                                # Skip if not a relevant domain
+                                if any(skip in url.lower() for skip in ['google.com', 'youtube.com']):
+                                    continue
+                                
+                                item = {
+                                    'id': self.generate_item_id(title, url),
+                                    'title': title,
+                                    'url': url,
+                                    'price': 'N/A',
+                                    'source': 'Google Search'
+                                }
+                                
+                                if not self.is_item_seen(item['id']):
+                                    self.results.append(item)
+                                    self.mark_item_seen(item)
+                        except Exception as e:
+                            print(f"Error parsing Google result: {e}")
+                            continue
+                
+                time.sleep(3)  # Be extra polite with Google
+                
+        except Exception as e:
+            print(f"Error searching Google: {e}")
+    
+    def send_email(self):
+        """Send email with found items"""
+        if not self.results:
+            print("No new items found, skipping email.")
+            return
+        
+        # Get email config from environment variables (for security)
+        sender_email = os.environ.get('SENDER_EMAIL')
+        sender_password = os.environ.get('SENDER_PASSWORD')
+        recipient_email = os.environ.get('RECIPIENT_EMAIL')
+        
+        if not all([sender_email, sender_password, recipient_email]):
+            print("Email credentials not configured. Results:")
+            for item in self.results:
+                print(f"- {item['title']} - {item['price']} - {item['url']}")
+            return
+        
+        # Create email
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f"🧥 {len(self.results)} New Vintage Coat(s) Found!"
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        
+        # Create HTML email body
+        html = f"""
+        <html>
+          <head></head>
+          <body>
+            <h2>Vintage Coat Finder - Daily Report</h2>
+            <p>Found {len(self.results)} new item(s) matching your search:</p>
+            <hr>
+        """
+        
+        for item in self.results:
+            html += f"""
+            <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                <h3 style="margin: 0 0 10px 0;">{item['title']}</h3>
+                <p style="margin: 5px 0;"><strong>Price:</strong> {item['price']}</p>
+                <p style="margin: 5px 0;"><strong>Source:</strong> {item['source']}</p>
+                <p style="margin: 5px 0;"><a href="{item['url']}" style="color: #0066cc;">View Item</a></p>
+            </div>
+            """
+        
+        html += f"""
+            <hr>
+            <p style="color: #666; font-size: 12px;">
+                Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+            </p>
+          </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(html, 'html'))
+        
+        # Send email
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                server.login(sender_email, sender_password)
+                server.send_message(msg)
+            print(f"Email sent successfully with {len(self.results)} item(s)!")
+        except Exception as e:
+            print(f"Error sending email: {e}")
+    
+    def run(self):
+        """Run all searches and send results"""
+        print(f"Starting vintage coat search at {datetime.now()}")
+        print(f"Search terms: {self.config['search_terms']}")
+        
+        # Run searches based on config
+        if self.config.get('search_ebay_kleinanzeigen', True):
+            self.search_ebay_kleinanzeigen()
+        
+        if self.config.get('search_vinted', True):
+            self.search_vinted()
+        
+        if self.config.get('search_google', True):
+            self.search_google()
+        
+        print(f"\nSearch complete. Found {len(self.results)} new items.")
+        
+        # Send email with results
+        self.send_email()
+
+
+if __name__ == '__main__':
+    finder = VintageCoatFinder()
+    finder.run()
