@@ -104,14 +104,20 @@ class VintageCoatFinder:
         # Build search URL
         search_terms = '+'.join(self.config['search_terms'])
         base_url = "https://www.kleinanzeigen.de/s-kleidung-damen/c153"
-        
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        
+
+        max_per_source = self.config.get('max_results_per_source', 10)
+        items_found = 0
+
         try:
             # Search for each term combination
             for term in self.config['search_terms']:
+                if items_found >= max_per_source:
+                    print(f"  Reached limit of {max_per_source} items for Kleinanzeigen")
+                    break
                 search_url = f"{base_url}?keywords={term.replace(' ', '+')}"
                 print(f"  Searching Kleinanzeigen for: {term}")
                 response = requests.get(search_url, headers=headers, timeout=10)
@@ -123,16 +129,19 @@ class VintageCoatFinder:
                     listings = soup.find_all('article', class_='aditem')
                     print(f"  Found {len(listings)} listings on Kleinanzeigen for '{term}'")
 
-                    for listing in listings[:10]:  # Limit to first 10
+                    for listing in listings:
+                        if items_found >= max_per_source:
+                            break
+
                         try:
                             title_elem = listing.find('a', class_='ellipsis')
                             price_elem = listing.find('p', class_='aditem-main--middle--price-shipping--price')
-                            
+
                             if title_elem:
                                 title = title_elem.get_text(strip=True)
                                 url = 'https://www.kleinanzeigen.de' + title_elem['href']
                                 price = price_elem.get_text(strip=True) if price_elem else 'N/A'
-                                
+
                                 item = {
                                     'id': self.generate_item_id(title, url),
                                     'title': title,
@@ -140,10 +149,11 @@ class VintageCoatFinder:
                                     'price': price,
                                     'source': 'Kleinanzeigen'
                                 }
-                                
+
                                 if not self.is_item_seen(item['id']):
                                     self.results.append(item)
                                     self.mark_item_seen(item)
+                                    items_found += 1
                                     print(f"  ✓ New item found: {title[:50]}...")
                         except Exception as e:
                             print(f"  Error parsing listing: {e}")
@@ -167,8 +177,14 @@ class VintageCoatFinder:
             'Upgrade-Insecure-Requests': '1'
         }
 
+        max_per_source = self.config.get('max_results_per_source', 10)
+        items_found = 0
+
         try:
             for term in self.config['search_terms']:
+                if items_found >= max_per_source:
+                    print(f"  Reached limit of {max_per_source} items for eBay Germany")
+                    break
                 # eBay Germany search URL
                 search_url = f"https://www.ebay.de/sch/i.html?_nkw={term.replace(' ', '+')}&_sacat=11450"
                 print(f"  Searching eBay Germany for: {term}")
@@ -185,7 +201,10 @@ class VintageCoatFinder:
 
                     print(f"  Found {len(listings)} listings on eBay Germany for '{term}'")
 
-                    for listing in listings[:10]:
+                    for listing in listings:
+                        if items_found >= max_per_source:
+                            break
+
                         try:
                             # Find title - any div with "title" in class
                             title_elem = listing.find('div', class_=lambda x: x and 'title' in str(x).lower())
@@ -216,6 +235,7 @@ class VintageCoatFinder:
                                 if not self.is_item_seen(item['id']):
                                     self.results.append(item)
                                     self.mark_item_seen(item)
+                                    items_found += 1
                                     print(f"  ✓ New item found: {title[:50]}...")
                         except Exception as e:
                             print(f"Error parsing eBay listing: {e}")
@@ -239,8 +259,14 @@ class VintageCoatFinder:
             'Upgrade-Insecure-Requests': '1'
         }
 
+        max_per_source = self.config.get('max_results_per_source', 10)
+        items_found = 0
+
         try:
             for term in self.config['search_terms']:
+                if items_found >= max_per_source:
+                    print(f"  Reached limit of {max_per_source} items for eBay UK")
+                    break
                 # eBay UK search URL
                 search_url = f"https://www.ebay.co.uk/sch/i.html?_nkw={term.replace(' ', '+')}&_sacat=11450"
                 print(f"  Searching eBay UK for: {term}")
@@ -257,7 +283,10 @@ class VintageCoatFinder:
 
                     print(f"  Found {len(listings)} listings on eBay UK for '{term}'")
 
-                    for listing in listings[:10]:
+                    for listing in listings:
+                        if items_found >= max_per_source:
+                            break
+
                         try:
                             # Find title - any div with "title" in class
                             title_elem = listing.find('div', class_=lambda x: x and 'title' in str(x).lower())
@@ -288,6 +317,7 @@ class VintageCoatFinder:
                                 if not self.is_item_seen(item['id']):
                                     self.results.append(item)
                                     self.mark_item_seen(item)
+                                    items_found += 1
                                     print(f"  ✓ New item found: {title[:50]}...")
                         except Exception as e:
                             print(f"Error parsing eBay UK listing: {e}")
@@ -360,8 +390,14 @@ class VintageCoatFinder:
             print("  ⚠ SERPAPI_KEY not found, skipping Google Shopping")
             return
 
+        max_per_source = self.config.get('max_results_per_source', 10)
+        items_found = 0
+
         try:
             for term in self.config['search_terms']:
+                if items_found >= max_per_source:
+                    print(f"  Reached limit of {max_per_source} items for Google Shopping")
+                    break
                 print(f"  Searching Google Shopping for: {term}")
 
                 # SerpAPI request
@@ -382,7 +418,10 @@ class VintageCoatFinder:
 
                     print(f"  Found {len(shopping_results)} products on Google Shopping for '{term}'")
 
-                    for result in shopping_results[:10]:  # Limit to 10 per search
+                    for result in shopping_results:
+                        if items_found >= max_per_source:
+                            break
+
                         try:
                             title = result.get('title', 'No title')
                             price = result.get('price', 'N/A')
@@ -403,6 +442,7 @@ class VintageCoatFinder:
                             if not self.is_item_seen(item['id']):
                                 self.results.append(item)
                                 self.mark_item_seen(item)
+                                items_found += 1
                                 print(f"  ✓ New item found: {title[:50]}...")
 
                         except Exception as e:
