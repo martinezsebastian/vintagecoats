@@ -351,6 +351,72 @@ class VintageCoatFinder:
         except Exception as e:
             print(f"Error searching Vinted: {e}")
     
+    def search_google_shopping(self):
+        """Search Google Shopping via SerpAPI"""
+        print("Searching Google Shopping (via SerpAPI)...")
+
+        serpapi_key = os.environ.get('SERPAPI_KEY')
+        if not serpapi_key:
+            print("  ⚠ SERPAPI_KEY not found, skipping Google Shopping")
+            return
+
+        try:
+            for term in self.config['search_terms']:
+                print(f"  Searching Google Shopping for: {term}")
+
+                # SerpAPI request
+                params = {
+                    "api_key": serpapi_key,
+                    "q": term,
+                    "tbm": "shop",  # Shopping results
+                    "location": "Germany",
+                    "hl": "en",  # Language
+                    "gl": "de",  # Country
+                }
+
+                response = requests.get("https://serpapi.com/search", params=params, timeout=15)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    shopping_results = data.get('shopping_results', [])
+
+                    print(f"  Found {len(shopping_results)} products on Google Shopping for '{term}'")
+
+                    for result in shopping_results[:10]:  # Limit to 10 per search
+                        try:
+                            title = result.get('title', 'No title')
+                            price = result.get('price', 'N/A')
+                            link = result.get('link', '')
+                            source = result.get('source', 'Unknown Store')
+
+                            if not link:
+                                continue
+
+                            item = {
+                                'id': self.generate_item_id(title, link),
+                                'title': title,
+                                'url': link,
+                                'price': price,
+                                'source': f'Google Shopping ({source})'
+                            }
+
+                            if not self.is_item_seen(item['id']):
+                                self.results.append(item)
+                                self.mark_item_seen(item)
+                                print(f"  ✓ New item found: {title[:50]}...")
+
+                        except Exception as e:
+                            print(f"  Error parsing Google Shopping result: {e}")
+                            continue
+
+                else:
+                    print(f"  ⚠ SerpAPI returned status {response.status_code}")
+
+                time.sleep(2)  # Be polite between requests
+
+        except Exception as e:
+            print(f"Error searching Google Shopping: {e}")
+
     def search_google(self):
         """Search via Google (for general web results)"""
         print("Searching Google...")
@@ -670,6 +736,9 @@ class VintageCoatFinder:
 
         if self.config.get('search_ebay_uk', True):
             self.search_ebay_uk()
+
+        if self.config.get('search_google_shopping', True):
+            self.search_google_shopping()
 
         if self.config.get('search_vinted', True):
             self.search_vinted()
