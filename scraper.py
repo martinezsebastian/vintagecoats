@@ -177,10 +177,11 @@ class VintageCoatFinder:
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
 
-                    # eBay uses s-item class for listings
-                    listings = soup.find_all('div', class_='s-item__wrapper')
-                    if not listings:
-                        listings = soup.find_all('li', class_='s-item')
+                    # eBay uses ul.srp-results container
+                    results_container = soup.find('ul', class_='srp-results')
+                    listings = []
+                    if results_container:
+                        listings = results_container.find_all('li', class_='s-card', recursive=False)
 
                     print(f"  Found {len(listings)} listings on eBay Germany for '{term}'")
 
@@ -246,10 +247,11 @@ class VintageCoatFinder:
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
 
-                    # eBay uses s-item class for listings
-                    listings = soup.find_all('div', class_='s-item__wrapper')
-                    if not listings:
-                        listings = soup.find_all('li', class_='s-item')
+                    # eBay uses ul.srp-results container
+                    results_container = soup.find('ul', class_='srp-results')
+                    listings = []
+                    if results_container:
+                        listings = results_container.find_all('li', class_='s-card', recursive=False)
 
                     print(f"  Found {len(listings)} listings on eBay UK for '{term}'")
 
