@@ -113,14 +113,16 @@ class VintageCoatFinder:
             # Search for each term combination
             for term in self.config['search_terms']:
                 search_url = f"{base_url}?keywords={term.replace(' ', '+')}"
+                print(f"  Searching Kleinanzeigen for: {term}")
                 response = requests.get(search_url, headers=headers, timeout=10)
-                
+
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
-                    
+
                     # Parse listings (adjust selectors based on actual site structure)
                     listings = soup.find_all('article', class_='aditem')
-                    
+                    print(f"  Found {len(listings)} listings on Kleinanzeigen for '{term}'")
+
                     for listing in listings[:10]:  # Limit to first 10
                         try:
                             title_elem = listing.find('a', class_='ellipsis')
@@ -142,12 +144,13 @@ class VintageCoatFinder:
                                 if not self.is_item_seen(item['id']):
                                     self.results.append(item)
                                     self.mark_item_seen(item)
+                                    print(f"  ✓ New item found: {title[:50]}...")
                         except Exception as e:
-                            print(f"Error parsing listing: {e}")
+                            print(f"  Error parsing listing: {e}")
                             continue
-                
+
                 time.sleep(2)  # Be polite, wait between requests
-                
+
         except Exception as e:
             print(f"Error searching Kleinanzeigen: {e}")
 
@@ -156,14 +159,20 @@ class VintageCoatFinder:
         print("Searching eBay...")
 
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
 
         try:
             for term in self.config['search_terms']:
                 # eBay Germany search URL
                 search_url = f"https://www.ebay.de/sch/i.html?_nkw={term.replace(' ', '+')}&_sacat=11450"
-                response = requests.get(search_url, headers=headers, timeout=10)
+                print(f"  Searching eBay Germany for: {term}")
+                response = requests.get(search_url, headers=headers, timeout=30)
 
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
@@ -172,6 +181,8 @@ class VintageCoatFinder:
                     listings = soup.find_all('div', class_='s-item__wrapper')
                     if not listings:
                         listings = soup.find_all('li', class_='s-item')
+
+                    print(f"  Found {len(listings)} listings on eBay Germany for '{term}'")
 
                     for listing in listings[:10]:
                         try:
@@ -202,6 +213,7 @@ class VintageCoatFinder:
                                 if not self.is_item_seen(item['id']):
                                     self.results.append(item)
                                     self.mark_item_seen(item)
+                                    print(f"  ✓ New item found: {title[:50]}...")
                         except Exception as e:
                             print(f"Error parsing eBay listing: {e}")
                             continue
@@ -216,14 +228,20 @@ class VintageCoatFinder:
         print("Searching eBay UK...")
 
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         }
 
         try:
             for term in self.config['search_terms']:
                 # eBay UK search URL
                 search_url = f"https://www.ebay.co.uk/sch/i.html?_nkw={term.replace(' ', '+')}&_sacat=11450"
-                response = requests.get(search_url, headers=headers, timeout=10)
+                print(f"  Searching eBay UK for: {term}")
+                response = requests.get(search_url, headers=headers, timeout=30)
 
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
@@ -232,6 +250,8 @@ class VintageCoatFinder:
                     listings = soup.find_all('div', class_='s-item__wrapper')
                     if not listings:
                         listings = soup.find_all('li', class_='s-item')
+
+                    print(f"  Found {len(listings)} listings on eBay UK for '{term}'")
 
                     for listing in listings[:10]:
                         try:
@@ -262,6 +282,7 @@ class VintageCoatFinder:
                                 if not self.is_item_seen(item['id']):
                                     self.results.append(item)
                                     self.mark_item_seen(item)
+                                    print(f"  ✓ New item found: {title[:50]}...")
                         except Exception as e:
                             print(f"Error parsing eBay UK listing: {e}")
                             continue
