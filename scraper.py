@@ -187,12 +187,14 @@ class VintageCoatFinder:
 
                     for listing in listings[:10]:
                         try:
-                            title_elem = listing.find('div', class_='s-item__title')
-                            if not title_elem:
-                                title_elem = listing.find('h3', class_='s-item__title')
+                            # Find title - any div with "title" in class
+                            title_elem = listing.find('div', class_=lambda x: x and 'title' in str(x).lower())
 
-                            link_elem = listing.find('a', class_='s-item__link')
-                            price_elem = listing.find('span', class_='s-item__price')
+                            # Find link - any a with "/itm/" in href
+                            link_elem = listing.find('a', href=lambda x: x and '/itm/' in str(x))
+
+                            # Find price - any span with "price" in class
+                            price_elem = listing.find('span', class_=lambda x: x and 'price' in str(x))
 
                             if title_elem and link_elem:
                                 title = title_elem.get_text(strip=True)
@@ -257,12 +259,14 @@ class VintageCoatFinder:
 
                     for listing in listings[:10]:
                         try:
-                            title_elem = listing.find('div', class_='s-item__title')
-                            if not title_elem:
-                                title_elem = listing.find('h3', class_='s-item__title')
+                            # Find title - any div with "title" in class
+                            title_elem = listing.find('div', class_=lambda x: x and 'title' in str(x).lower())
 
-                            link_elem = listing.find('a', class_='s-item__link')
-                            price_elem = listing.find('span', class_='s-item__price')
+                            # Find link - any a with "/itm/" in href
+                            link_elem = listing.find('a', href=lambda x: x and '/itm/' in str(x))
+
+                            # Find price - any span with "price" in class
+                            price_elem = listing.find('span', class_=lambda x: x and 'price' in str(x))
 
                             if title_elem and link_elem:
                                 title = title_elem.get_text(strip=True)
