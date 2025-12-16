@@ -6,10 +6,13 @@ on:
     - cron: '0 9 * * *'
   workflow_dispatch:  # Allow manual triggers
 
+permissions:
+  contents: write  # Allow pushing database changes
+
 jobs:
   search:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
