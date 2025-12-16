@@ -295,23 +295,25 @@ class VintageCoatFinder:
     def search_vinted(self):
         """Search Vinted"""
         print("Searching Vinted...")
-        
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        
+
         try:
             for term in self.config['search_terms']:
                 search_url = f"https://www.vinted.de/vetements?search_text={term.replace(' ', '+')}"
+                print(f"  Searching Vinted for: {term}")
                 response = requests.get(search_url, headers=headers, timeout=10)
-                
+
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
-                    
+
                     # Vinted uses dynamic loading, so basic scraping might not get all items
                     # This is a simplified version - might need Selenium for full results
                     listings = soup.find_all('div', class_='feed-grid__item')
-                    
+                    print(f"  Found {len(listings)} listings on Vinted for '{term}' (Note: Vinted uses JavaScript, may show 0)")
+
                     for listing in listings[:10]:
                         try:
                             title_elem = listing.find('h3')
@@ -346,25 +348,27 @@ class VintageCoatFinder:
     def search_google(self):
         """Search via Google (for general web results)"""
         print("Searching Google...")
-        
+
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        
+
         try:
             for term in self.config['search_terms']:
                 # Add "vintage coat" and location to search
                 query = f"{term} vintage coat berlin"
                 search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}&num=10"
-                
+                print(f"  Searching Google for: {query}")
+
                 response = requests.get(search_url, headers=headers, timeout=10)
-                
+
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.content, 'html.parser')
-                    
+
                     # Parse Google search results
                     search_results = soup.find_all('div', class_='g')
-                    
+                    print(f"  Found {len(search_results)} results on Google for '{query}'")
+
                     for result in search_results[:5]:  # Top 5 results
                         try:
                             title_elem = result.find('h3')
@@ -410,6 +414,7 @@ class VintageCoatFinder:
             for term in self.config['search_terms']:
                 # Vintage Threads search URL structure
                 search_url = f"https://vintage-threads.com/search?q={term.replace(' ', '+')}"
+                print(f"  Searching Vintage Threads for: {term}")
                 response = requests.get(search_url, headers=headers, timeout=10)
 
                 if response.status_code == 200:
@@ -419,6 +424,8 @@ class VintageCoatFinder:
                     listings = soup.find_all('div', class_=['product-item', 'product', 'item'])
                     if not listings:
                         listings = soup.find_all('article')
+
+                    print(f"  Found {len(listings)} listings on Vintage Threads for '{term}'")
 
                     for listing in listings[:10]:
                         try:
@@ -469,6 +476,7 @@ class VintageCoatFinder:
             for term in self.config['search_terms']:
                 # Vilis Vintage search URL structure
                 search_url = f"https://www.vilisvintage.com/search?q={term.replace(' ', '+')}"
+                print(f"  Searching Vilis Vintage for: {term}")
                 response = requests.get(search_url, headers=headers, timeout=10)
 
                 if response.status_code == 200:
@@ -478,6 +486,8 @@ class VintageCoatFinder:
                     listings = soup.find_all('div', class_=['product-item', 'product', 'item'])
                     if not listings:
                         listings = soup.find_all('article')
+
+                    print(f"  Found {len(listings)} listings on Vilis Vintage for '{term}'")
 
                     for listing in listings[:10]:
                         try:
@@ -527,6 +537,7 @@ class VintageCoatFinder:
             for term in self.config['search_terms']:
                 # Etsy search URL structure
                 search_url = f"https://www.etsy.com/search?q={term.replace(' ', '+')}"
+                print(f"  Searching Etsy for: {term}")
                 response = requests.get(search_url, headers=headers, timeout=10)
 
                 if response.status_code == 200:
@@ -537,6 +548,8 @@ class VintageCoatFinder:
                     if not listings:
                         # Fallback to other common patterns
                         listings = soup.find_all('div', class_=re.compile('listing'))
+
+                    print(f"  Found {len(listings)} listings on Etsy for '{term}' (Note: Etsy uses JavaScript, may show 0)")
 
                     for listing in listings[:10]:
                         try:
