@@ -768,6 +768,10 @@ class VintageCoatFinder:
         print(f"Search terms: {self.config['search_terms']}")
         
         # Run searches based on config
+        # Google Shopping first - most varied results from 50+ stores
+        if self.config.get('search_google_shopping', True):
+            self.search_google_shopping()
+
         if self.config.get('search_kleinanzeigen', True):
             self.search_kleinanzeigen()
 
@@ -776,9 +780,6 @@ class VintageCoatFinder:
 
         if self.config.get('search_ebay_uk', True):
             self.search_ebay_uk()
-
-        if self.config.get('search_google_shopping', True):
-            self.search_google_shopping()
 
         if self.config.get('search_vinted', True):
             self.search_vinted()
