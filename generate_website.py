@@ -15,7 +15,7 @@ def generate_website():
 
     # Get all items, sorted by date (newest first)
     cursor.execute('''
-        SELECT id, title, url, price, source, found_date
+        SELECT id, title, url, price, source, found_date, image_url
         FROM seen_items
         ORDER BY found_date DESC
     ''')
@@ -120,21 +120,48 @@ def generate_website():
 
         .items-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
         }}
 
         .item-card {{
             background: white;
             border-radius: 12px;
-            padding: 20px;
+            overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
         }}
 
         .item-card:hover {{
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }}
+
+        .item-image {{
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        }}
+
+        .item-image-placeholder {{
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 4em;
+        }}
+
+        .item-content {{
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }}
 
         .item-title {{
@@ -265,7 +292,7 @@ def generate_website():
 
     # Add items
     for item in items:
-        item_id, title, url, price, source, found_date = item
+        item_id, title, url, price, source, found_date, image_url = item
 
         # Parse date
         try:
@@ -275,21 +302,31 @@ def generate_website():
             date_str = found_date[:10] if found_date else 'Unknown'
 
         # Escape HTML
-        title = title.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
-        url = url.replace('"', '&quot;')
+        title_escaped = title.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+        url_escaped = url.replace('"', '&quot;')
+        image_url_escaped = image_url.replace('"', '&quot;') if image_url else ''
+
+        # Generate image HTML
+        if image_url:
+            image_html = f'<img src="{image_url_escaped}" alt="{title_escaped}" class="item-image" loading="lazy">'
+        else:
+            image_html = '<div class="item-image-placeholder">🧥</div>'
 
         html += f"""            <div class="item-card" data-source="{source}" data-price="{price}" data-date="{found_date}" data-title="{title.lower()}">
-                <div class="item-title">{title}</div>
-                <div class="item-info">
-                    <div>
-                        <span class="price">{price}</span>
+                {image_html}
+                <div class="item-content">
+                    <div class="item-title">{title_escaped}</div>
+                    <div class="item-info">
+                        <div>
+                            <span class="price">{price}</span>
+                        </div>
+                        <div>
+                            <span class="source">{source}</span>
+                        </div>
+                        <div class="date">Found: {date_str}</div>
                     </div>
-                    <div>
-                        <span class="source">{source}</span>
-                    </div>
-                    <div class="date">Found: {date_str}</div>
+                    <a href="{url_escaped}" target="_blank" class="view-btn">View Item →</a>
                 </div>
-                <a href="{url}" target="_blank" class="view-btn">View Item →</a>
             </div>
 """
 

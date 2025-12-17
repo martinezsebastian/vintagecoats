@@ -40,7 +40,8 @@ class VintageCoatFinder:
                 url TEXT,
                 price TEXT,
                 source TEXT,
-                found_date TEXT
+                found_date TEXT,
+                image_url TEXT
             )
         ''')
         conn.commit()
@@ -84,15 +85,16 @@ class VintageCoatFinder:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT OR IGNORE INTO seen_items (id, title, url, price, source, found_date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO seen_items (id, title, url, price, source, found_date, image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
             item['id'],
             item['title'],
             item['url'],
             item.get('price', 'N/A'),
             item['source'],
-            datetime.now().isoformat()
+            datetime.now().isoformat(),
+            item.get('image_url', '')
         ))
         conn.commit()
         conn.close()
@@ -137,6 +139,12 @@ class VintageCoatFinder:
                             title_elem = listing.find('a', class_='ellipsis')
                             price_elem = listing.find('p', class_='aditem-main--middle--price-shipping--price')
 
+                            # Find image
+                            image_url = ''
+                            img_elem = listing.find('img')
+                            if img_elem:
+                                image_url = img_elem.get('src', '') or img_elem.get('data-src', '')
+
                             if title_elem:
                                 title = title_elem.get_text(strip=True)
                                 url = 'https://www.kleinanzeigen.de' + title_elem['href']
@@ -147,7 +155,8 @@ class VintageCoatFinder:
                                     'title': title,
                                     'url': url,
                                     'price': price,
-                                    'source': 'Kleinanzeigen'
+                                    'source': 'Kleinanzeigen',
+                                    'image_url': image_url
                                 }
 
                                 if not self.is_item_seen(item['id']):
@@ -215,6 +224,12 @@ class VintageCoatFinder:
                             # Find price - any span with "price" in class
                             price_elem = listing.find('span', class_=lambda x: x and 'price' in str(x))
 
+                            # Find image
+                            image_url = ''
+                            img_elem = listing.find('img')
+                            if img_elem:
+                                image_url = img_elem.get('src', '') or img_elem.get('data-src', '')
+
                             if title_elem and link_elem:
                                 title = title_elem.get_text(strip=True)
                                 # Skip eBay's "Shop on eBay" header item
@@ -229,7 +244,8 @@ class VintageCoatFinder:
                                     'title': title,
                                     'url': url,
                                     'price': price,
-                                    'source': 'eBay'
+                                    'source': 'eBay',
+                                    'image_url': image_url
                                 }
 
                                 if not self.is_item_seen(item['id']):
@@ -297,6 +313,12 @@ class VintageCoatFinder:
                             # Find price - any span with "price" in class
                             price_elem = listing.find('span', class_=lambda x: x and 'price' in str(x))
 
+                            # Find image
+                            image_url = ''
+                            img_elem = listing.find('img')
+                            if img_elem:
+                                image_url = img_elem.get('src', '') or img_elem.get('data-src', '')
+
                             if title_elem and link_elem:
                                 title = title_elem.get_text(strip=True)
                                 # Skip eBay's "Shop on eBay" header item
@@ -311,7 +333,8 @@ class VintageCoatFinder:
                                     'title': title,
                                     'url': url,
                                     'price': price,
-                                    'source': 'eBay UK'
+                                    'source': 'eBay UK',
+                                    'image_url': image_url
                                 }
 
                                 if not self.is_item_seen(item['id']):
@@ -427,6 +450,7 @@ class VintageCoatFinder:
                             price = result.get('price', 'N/A')
                             link = result.get('link', '')
                             source = result.get('source', 'Unknown Store')
+                            image_url = result.get('thumbnail', '')
 
                             if not link:
                                 continue
@@ -436,7 +460,8 @@ class VintageCoatFinder:
                                 'title': title,
                                 'url': link,
                                 'price': price,
-                                'source': f'Google Shopping ({source})'
+                                'source': f'Google Shopping ({source})',
+                                'image_url': image_url
                             }
 
                             if not self.is_item_seen(item['id']):
