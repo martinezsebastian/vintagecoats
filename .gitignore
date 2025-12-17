@@ -38,5 +38,5 @@ wheels/
 .DS_Store
 Thumbs.db
 
-# Don't ignore the database - we want to track it in git
-!seen_items.db
+# Database (regenerated on each run)
+seen_items.db
