@@ -7,10 +7,7 @@ Searches multiple sources for vintage coats and sends email notifications
 import os
 import json
 import sqlite3
-import smtplib
 import hashlib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from typing import List, Dict, Optional
 import requests
@@ -24,13 +21,17 @@ class VintageCoatFinder:
         """Initialize the finder with configuration"""
         with open(config_path, 'r') as f:
             self.config = json.load(f)
-        
+
         self.db_path = 'seen_items.db'
+        # Delete old database to start fresh each time
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
+            print(f"Deleted old database to start fresh")
         self.setup_database()
         self.results = []
-        
+
     def setup_database(self):
-        """Create database to track seen items"""
+        """Create fresh database"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -71,17 +72,8 @@ class VintageCoatFinder:
         unique_string = f"{title}_{url}"
         return hashlib.md5(unique_string.encode()).hexdigest()
     
-    def is_item_seen(self, item_id: str) -> bool:
-        """Check if item has been seen before"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM seen_items WHERE id = ?', (item_id,))
-        result = cursor.fetchone()
-        conn.close()
-        return result is not None
-    
-    def mark_item_seen(self, item: Dict):
-        """Mark item as seen in database"""
+    def save_item(self, item: Dict):
+        """Save item to database"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
@@ -159,11 +151,10 @@ class VintageCoatFinder:
                                     'image_url': image_url
                                 }
 
-                                if not self.is_item_seen(item['id']):
-                                    self.results.append(item)
-                                    self.mark_item_seen(item)
-                                    items_found += 1
-                                    print(f"  ✓ New item found: {title[:50]}...")
+                                self.results.append(item)
+                                self.save_item(item)
+                                items_found += 1
+                                print(f"  ✓ Item found: {title[:50]}...")
                         except Exception as e:
                             print(f"  Error parsing listing: {e}")
                             continue
@@ -248,11 +239,10 @@ class VintageCoatFinder:
                                     'image_url': image_url
                                 }
 
-                                if not self.is_item_seen(item['id']):
-                                    self.results.append(item)
-                                    self.mark_item_seen(item)
-                                    items_found += 1
-                                    print(f"  ✓ New item found: {title[:50]}...")
+                                self.results.append(item)
+                                self.save_item(item)
+                                items_found += 1
+                                print(f"  ✓ Item found: {title[:50]}...")
                         except Exception as e:
                             print(f"Error parsing eBay listing: {e}")
                             continue
@@ -337,11 +327,10 @@ class VintageCoatFinder:
                                     'image_url': image_url
                                 }
 
-                                if not self.is_item_seen(item['id']):
-                                    self.results.append(item)
-                                    self.mark_item_seen(item)
-                                    items_found += 1
-                                    print(f"  ✓ New item found: {title[:50]}...")
+                                self.results.append(item)
+                                self.save_item(item)
+                                items_found += 1
+                                print(f"  ✓ Item found: {title[:50]}...")
                         except Exception as e:
                             print(f"Error parsing eBay UK listing: {e}")
                             continue
@@ -464,11 +453,10 @@ class VintageCoatFinder:
                                 'image_url': image_url
                             }
 
-                            if not self.is_item_seen(item['id']):
-                                self.results.append(item)
-                                self.mark_item_seen(item)
-                                items_found += 1
-                                print(f"  ✓ New item found: {title[:50]}...")
+                            self.results.append(item)
+                            self.save_item(item)
+                            items_found += 1
+                            print(f"  ✓ Item found: {title[:50]}...")
 
                         except Exception as e:
                             print(f"  Error parsing Google Shopping result: {e}")
@@ -724,68 +712,6 @@ class VintageCoatFinder:
         except Exception as e:
             print(f"Error searching Etsy: {e}")
 
-    def send_email(self):
-        """Send email with found items"""
-        if not self.results:
-            print("No new items found, skipping email.")
-            return
-        
-        # Get email config from environment variables (for security)
-        sender_email = os.environ.get('SENDER_EMAIL')
-        sender_password = os.environ.get('SENDER_PASSWORD')
-        recipient_email = os.environ.get('RECIPIENT_EMAIL')
-        
-        if not all([sender_email, sender_password, recipient_email]):
-            print("Email credentials not configured. Results:")
-            for item in self.results:
-                print(f"- {item['title']} - {item['price']} - {item['url']}")
-            return
-        
-        # Create email
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"🧥 {len(self.results)} New Vintage Coat(s) Found!"
-        msg['From'] = sender_email
-        msg['To'] = recipient_email
-        
-        # Create HTML email body
-        html = f"""
-        <html>
-          <head></head>
-          <body>
-            <h2>Vintage Coat Finder - Daily Report</h2>
-            <p>Found {len(self.results)} new item(s) matching your search:</p>
-            <hr>
-        """
-        
-        for item in self.results:
-            html += f"""
-            <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                <h3 style="margin: 0 0 10px 0;">{item['title']}</h3>
-                <p style="margin: 5px 0;"><strong>Price:</strong> {item['price']}</p>
-                <p style="margin: 5px 0;"><strong>Source:</strong> {item['source']}</p>
-                <p style="margin: 5px 0;"><a href="{item['url']}" style="color: #0066cc;">View Item</a></p>
-            </div>
-            """
-        
-        html += f"""
-            <hr>
-            <p style="color: #666; font-size: 12px;">
-                Report generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
-            </p>
-          </body>
-        </html>
-        """
-        
-        msg.attach(MIMEText(html, 'html'))
-        
-        # Send email
-        try:
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-                server.login(sender_email, sender_password)
-                server.send_message(msg)
-            print(f"Email sent successfully with {len(self.results)} item(s)!")
-        except Exception as e:
-            print(f"Error sending email: {e}")
     
     def run(self):
         """Run all searches and send results"""
@@ -821,10 +747,7 @@ class VintageCoatFinder:
         if self.config.get('search_etsy', True):
             self.search_etsy()
 
-        print(f"\nSearch complete. Found {len(self.results)} new items.")
-        
-        # Send email with results
-        self.send_email()
+        print(f"\nSearch complete. Found {len(self.results)} items.")
 
 
 if __name__ == '__main__':
