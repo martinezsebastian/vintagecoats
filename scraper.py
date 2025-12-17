@@ -434,7 +434,7 @@ class VintageCoatFinder:
 
                     print(f"  Found {len(shopping_results)} products on Google Shopping for '{term}'")
 
-                    for result in shopping_results:
+                    for idx, result in enumerate(shopping_results):
                         if items_found >= max_per_source:
                             break
 
@@ -445,7 +445,10 @@ class VintageCoatFinder:
                             source = result.get('source', 'Unknown Store')
                             image_url = result.get('thumbnail', '')
 
+                            print(f"  DEBUG result {idx}: title={title[:30]}... link_present={bool(link)}")
+
                             if not link:
+                                print(f"  DEBUG: Skipping item {idx} - no link. Keys in result: {list(result.keys())}")
                                 continue
 
                             item = {
