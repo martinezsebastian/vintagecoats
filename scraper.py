@@ -398,6 +398,10 @@ class VintageCoatFinder:
         print("Searching Google Shopping (via SerpAPI)...")
 
         serpapi_key = os.environ.get('SERPAPI_KEY')
+        print(f"  DEBUG: SERPAPI_KEY present: {bool(serpapi_key)}")
+        if serpapi_key:
+            print(f"  DEBUG: SERPAPI_KEY length: {len(serpapi_key)} chars")
+            print(f"  DEBUG: SERPAPI_KEY starts with: {serpapi_key[:8]}...")
         if not serpapi_key:
             print("  ⚠ SERPAPI_KEY not found, skipping Google Shopping")
             return
