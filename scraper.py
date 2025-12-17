@@ -441,14 +441,12 @@ class VintageCoatFinder:
                         try:
                             title = result.get('title', 'No title')
                             price = result.get('price', 'N/A')
-                            link = result.get('link', '')
+                            link = result.get('product_link', '')  # SerpAPI uses 'product_link', not 'link'
                             source = result.get('source', 'Unknown Store')
                             image_url = result.get('thumbnail', '')
 
-                            print(f"  DEBUG result {idx}: title={title[:30]}... link_present={bool(link)}")
-
                             if not link:
-                                print(f"  DEBUG: Skipping item {idx} - no link. Keys in result: {list(result.keys())}")
+                                print(f"  DEBUG: Skipping item {idx} - no product_link")
                                 continue
 
                             item = {
