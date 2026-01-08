@@ -39,11 +39,11 @@ jobs:
       run: |
         python generate_website.py
 
-    - name: Commit and push database and website
+    - name: Commit and push website
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add seen_items.db index.html
-        git diff --quiet && git diff --staged --quiet || git commit -m "Update database and website"
+        git add index.html
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update website with new coat listings"
         git push
       continue-on-error: true  # Don't fail if no changes to commit
